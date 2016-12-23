@@ -144,7 +144,22 @@ yum -y install nss-devel nspr-devel pkgconfig pam-devel \
   libcap-ng-devel libselinux-devel \
   curl-devel flex bison gcc make \
   fipscheck-devel unbound-devel xmlto || exiterr2
-yum -y install ppp xl2tpd || exiterr2
+yum -y install ppp || exiterr2
+
+# Temporary workaround for xl2tpd bug
+# Ref: https://bugzilla.redhat.com/show_bug.cgi?id=1406360
+if grep -qs "release 6" /etc/redhat-release; then
+  yum -y install xl2tpd || exiterr2
+else
+  xl2tpd_file="xl2tpd-1.3.6-8.el7.x86_64.rpm"
+  xl2tpd_url="http://d1hygtkx88zlwz.cloudfront.net/$xl2tpd_file"
+  if wget -t 3 -T 30 -nv -O "$xl2tpd_file" "$xl2tpd_url"; then
+    yum -y localinstall "$xl2tpd_file" || exiterr2
+    /bin/rm -f "$xl2tpd_file"
+  else
+    yum -y install xl2tpd || exiterr2
+  fi
+fi
 
 # Install Fail2Ban to protect SSH server
 yum -y install fail2ban || exiterr2
